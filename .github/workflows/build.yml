@@ -16,6 +16,8 @@ jobs:
     steps:
     - name: 签出代码
       uses: actions/checkout@v3
+      with:
+        submodules: recursive
 
     - name: 构建cmake工程
       run: make
