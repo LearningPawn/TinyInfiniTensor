@@ -1,4 +1,4 @@
-name: Build and test cpu
+name: 构建并在CPU上测试
 on:
   push:
     paths-ignore:
@@ -11,15 +11,30 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: 初始化并检查测试
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
+    - name: 签出代码
+      uses: actions/checkout@v3
 
-    - name: Build
+    - name: 构建cmake工程
       run: make
 
-    - name: Test cpu
-      run: make test-cpp
+    - name: 运行测试
+      run: make test-cpp | tee test_output.txt
+
+    - name: 解析测试结果并生成 JSON 文件
+      run: |
+        outfile="test_output.txt"
+
+        # 获取测试结果信息
+        info_line=$(awk '/tests passed,/' $outfile | sed 's/\x1b\[[0-9;]*m//g')
+
+        # 提取失败的题目与总题目数量
+        total_failures=$(echo $info_line | cut -d',' -f2 | sed 's/ tests failed out of /\//' | cut -d'/' -f1)
+        total_exercises=$(echo $info_line | cut -d',' -f2 | sed 's/ tests failed out of /\//' | cut -d'/' -f2)
+
+        # 初始化总通过数
+        total_succeeds=$((total_exercises - total_failures))
+
+        echo {"success": $total_succeeds, "failure": $total_failures, "total": $total_exercises}
